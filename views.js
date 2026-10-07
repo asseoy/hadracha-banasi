@@ -104,7 +104,7 @@ function shell() {
   window.addEventListener('scroll', () => $('#topbar').classList.toggle('scrolled', window.scrollY > 4), { passive: true });
 }
 function brandMark() {
-  return `<img class="brand-logo" src="img/logo-96.png" alt="" width="38" height="38">`;
+  return `<img class="brand-logo" src="img/logo-96.png" alt="" width="38" height="38" onerror="this.onerror=null;this.src=this.src.replace('/img/','/')">`;
 }
 
 function topbar({ title = '', sub = '', back = Nav.stack.length > 1, actions = '', brand = false } = {}) {
@@ -180,7 +180,7 @@ VIEWS.home = (main) => {
       <div><span class="kicker">שבט הנשיא · ספריית ההדרכה</span>
         <h1>הדרכה<br>בנשיא</h1>
         <p>כל הפעולות, תיקי הטיול והמאגרים של השבט. מחפשים, משכפלים ובונים מחדש.</p></div>
-      <img class="hero-logo" src="img/logo-192.png" alt="הסמל של שבט הנשיא" width="118" height="118">
+      <img class="hero-logo" src="img/logo-192.png" alt="הסמל של שבט הנשיא" width="118" height="118" onerror="this.onerror=null;this.src=this.src.replace('/img/','/')">
     </div>
     <label class="searchbox" for="home-q">${ic('search')}<input id="home-q" type="search" placeholder="חיפוש פעולה, משחק, טקסט או נושא" enterkeyhint="search" autocomplete="off"></label>
     <div class="statgrid">

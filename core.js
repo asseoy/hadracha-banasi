@@ -536,7 +536,9 @@ const Store = {
 const Lib = {
   docs: [], comps: [], topics: [],
   async load() {
-    const r = await fetch('data/library.json');
+    // data/library.json; falls back to the site root (uploads that flattened the folders)
+    let r = await fetch('data/library.json');
+    if (!r.ok) r = await fetch('library.json');
     const L = await r.json();
     Store.lib = L;
     this.docs = L.docs; this.comps = L.components; this.topics = L.topics;
