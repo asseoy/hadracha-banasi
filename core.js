@@ -536,9 +536,11 @@ const Store = {
 const Lib = {
   docs: [], comps: [], topics: [],
   async load() {
-    // data/library.json; falls back to the site root (uploads that flattened the folders)
-    let r = await fetch('data/library.json');
-    if (!r.ok) r = await fetch('library.json');
+    // data/library.json; falls back to the site root (uploads that flattened the folders).
+    // Bump LIB_VERSION whenever library.json changes so browsers skip their cached copy.
+    const LIB_VERSION = 2;
+    let r = await fetch('data/library.json?v=' + LIB_VERSION);
+    if (!r.ok) r = await fetch('library.json?v=' + LIB_VERSION);
     const L = await r.json();
     Store.lib = L;
     this.docs = L.docs; this.comps = L.components; this.topics = L.topics;
