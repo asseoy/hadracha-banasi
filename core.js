@@ -538,7 +538,7 @@ const Lib = {
   async load() {
     // data/library.json; falls back to the site root (uploads that flattened the folders).
     // Bump LIB_VERSION whenever library.json changes so browsers skip their cached copy.
-    const LIB_VERSION = 2;
+    const LIB_VERSION = 3;
     let r = await fetch('data/library.json?v=' + LIB_VERSION);
     if (!r.ok) r = await fetch('library.json?v=' + LIB_VERSION);
     const L = await r.json();
