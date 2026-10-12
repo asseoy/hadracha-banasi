@@ -1,4 +1,4 @@
-﻿/* הדרכה בנשיא — shell, navigation, home, library, reader, my work */
+/* הדרכה בנשיא — shell, navigation, home, library, reader, my work */
 'use strict';
 
 /* ================================================================ navigation */
@@ -204,7 +204,10 @@ VIEWS.home = (main) => {
   ${recent.length ? `<section class="section"><div class="sec-head"><h2>נצפו לאחרונה</h2></div><div class="list">${recent.slice(0, 4).map(id => anyRow(id)).join('')}</div></section>` : ''}
   <section class="section"><div class="sec-head"><h2>כלים</h2></div>
     <div class="list">
-      <div class="row" role="button" tabindex="0" data-tool="groups"><span class="ic">${ic('shuffle')}</span><div class="bd"><h3>חלוקה לקבוצות</h3><div class="meta"><span>רשימת שמות ← קבוצות מאוזנות לסמינר, לתחנות או לאחוות</span></div></div></div>
+      <div class="row" role="button" tabindex="0" data-tool="have"><span class="ic">${ic('search')}</span><div class="bd"><h3>מה יש לי?</h3><div class="meta"><span>כמה זמן, איזה ציוד ולמי ← פעולות מהמאגר שמתאימות</span></div></div></div>
+      <div class="row" role="button" tabindex="0" data-tool="games"><span class="ic">${ic('shuffle')}</span><div class="bd"><h3>מגריל משחקים</h3><div class="meta"><span>נגמרה הפעולה מוקדם? משחק פתיחה, משחק לפעולה, לאוטובוס או למסלול</span></div></div></div>
+      <div class="row" role="button" tabindex="0" data-tool="questions"><span class="ic">${ic('book')}</span><div class="bd"><h3>שאלות לדיון</h3><div class="meta"><span>בוחרים נושא ← שאלות טובות לשיחה מתוך כל הפעולות במאגר</span></div></div></div>
+      <div class="row" role="button" tabindex="0" data-tool="groups"><span class="ic">${ic('users')}</span><div class="bd"><h3>חלוקה לקבוצות</h3><div class="meta"><span>רשימת שמות ← קבוצות מאוזנות לסמינר, לתחנות או לאחוות</span></div></div></div>
       <div class="row" role="button" tabindex="0" data-doc="pdf-trip-helper"><span class="ic">${ic('book')}</span><div class="bd"><h3>עזרים לכתיבת תיק טיול</h3><div class="meta"><span>משחקי אוטובוס ומסלול, משחקים משודרגים, זמני צופיות, שלבי נקודת מבט</span></div></div></div>
     </div>
   </section>`;
@@ -215,7 +218,8 @@ VIEWS.home = (main) => {
   main.addEventListener('click', e => {
     const t = e.target.closest('[data-topic]'); if (t) Nav.tab('library', { tab: 'act', topic: t.dataset.topic });
     const l = e.target.closest('[data-lib]'); if (l) Nav.tab('library', { tab: l.dataset.lib, sort: l.dataset.sort, q: '' });
-    const tl = e.target.closest('[data-tool]'); if (tl) openGroupsTool();
+    const tl = e.target.closest('[data-tool]');
+    if (tl) ({ groups: () => openGroupsTool(), have: openHaveTool, games: openGameTool, questions: openQuestionsTool })[tl.dataset.tool]?.();
   });
   return { onRemote: () => render(false) };
 };
@@ -908,6 +912,170 @@ function openGroupsTool(plan) {
         if (plan) { plan.groups = keep; Store.put(plan, { quiet: true }); } else LS.set('groups', keep);
       };
       s.querySelector('#gr-copy').onclick = () => result && copyText(result.map((g, i) => `קבוצה ${i + 1}:\n${g.join('\n')}`).join('\n\n'), 'החלוקה הועתקה');
+    },
+  });
+}
+
+/* ================================================================ live tools for the counselor */
+const shuffled = a => { const s = [...a]; for (let i = s.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [s[i], s[j]] = [s[j], s[i]]; } return s; };
+const chipRow = (name, opts, cur) => `<div class="filters" role="group" data-chips="${name}" style="margin-inline:0;padding-inline:0;flex-wrap:wrap">${opts.map(([v, l]) => `<button class="chip" data-v="${esc(v)}" aria-pressed="${String(v) === String(cur)}">${esc(l)}</button>`).join('')}</div>`;
+function bindChips(root, onPick) {
+  root.addEventListener('click', e => {
+    const b = e.target.closest('[data-chips] .chip'); if (!b) return;
+    const g = b.closest('[data-chips]');
+    for (const x of g.querySelectorAll('.chip')) x.setAttribute('aria-pressed', x === b);
+    onPick(g.dataset.chips, b.dataset.v);
+  });
+}
+
+/* how long an activity runs: its own field, or the sum of its parts */
+function actMinutes(d) {
+  if (d.minutes) return d.minutes;
+  const s = (d.segments || []).reduce((t, x) => t + (+x.minutes || 0), 0);
+  return s >= 10 ? s : null;
+}
+const BASIC_EQUIP = /דף|דפים|עט|טוש|פתק|לורד|נייר|מדבק|מעטפ|מודפס|להדפיס|הדפס|שאלות|בריסטול|מספרי|דבק|ססל|פתיבר|טלפון|רמקול/;
+function equipLevel(d) {
+  const e = (d.equipment || []).filter(x => /[\u05d0-\u05eaA-Za-z]/.test(x));
+  if (!e.length) return 'none';
+  return e.every(x => BASIC_EQUIP.test(x)) ? 'basic' : 'full';
+}
+
+/* 4 — "what do I have?": time, equipment, audience, topic -> matching activities */
+function openHaveTool() {
+  const st = Object.assign({ min: '45', eq: 'any', aud: 'any', topic: '' }, LS.get('have', {}));
+  const MIN = [['30', '30 דק׳'], ['45', '45 דק׳'], ['60', 'שעה'], ['90', 'שעה וחצי'], ['any', 'לא משנה']];
+  const EQ = [['basic', 'בלי ציוד / דפים ועטים'], ['any', 'יש לי ציוד']];
+  const AUD = [['any', 'כולם'], ['חניכים', 'חניכים'], ['חמישית', 'חמישית']];
+  const TOP = [['', 'כל נושא'], ...Lib.topics.map(t => [t, t])];
+  Sheet.show({
+    title: 'מה יש לי?', tall: true, body: `
+      <div class="field"><label>כמה זמן יש לפעולה?</label>${chipRow('min', MIN, st.min)}</div>
+      <div class="field"><label>ציוד</label>${chipRow('eq', EQ, st.eq)}</div>
+      <div class="field"><label>למי</label>${chipRow('aud', AUD, st.aud)}</div>
+      <div class="field"><label>נושא</label>${chipRow('topic', TOP, st.topic)}</div>
+      <div id="hv-out"></div>`,
+    onMount: s => {
+      const draw = () => {
+        LS.set('have', st);
+        const want = st.min === 'any' ? null : +st.min;
+        const res = [];
+        for (const d of Lib.activities()) {
+          if (st.aud !== 'any' && d.audience !== st.aud) continue;
+          if (st.topic && !(d.tags || []).includes(st.topic)) continue;
+          const lv = equipLevel(d);
+          if (st.eq === 'basic' && lv === 'full') continue;
+          const m = actMinutes(d);
+          let score = 1, why = [];
+          if (want) {
+            if (m == null) { score -= .45; why.push('משך לא צוין'); }
+            else { const diff = Math.abs(m - want); if (m > want * 1.35) continue; score -= Math.min(.9, diff / want); why.push(fmtMin(m)); }
+          } else if (m) why.push(fmtMin(m));
+          if (st.eq === 'basic') why.push(lv === 'none' ? 'בלי רשימת ציוד' : 'ציוד בסיסי');
+          if ((d.segments || []).length >= 2) score += .1;
+          if (d.goal) score += .1;
+          res.push({ d, score, why });
+        }
+        res.sort((a, b) => b.score - a.score);
+        const top = res.slice(0, 25);
+        s.querySelector('#hv-out').innerHTML = res.length
+          ? `<div class="muted" style="font-size:14px;margin:6px 0 8px">${want ? `${res.filter(r => !r.why.includes('משך לא צוין')).length} פעולות באורך מתאים, ועוד ${res.filter(r => r.why.includes('משך לא צוין')).length} שהאורך שלהן לא צוין` : `${res.length} פעולות מתאימות`}. הכי מתאימות למעלה.</div>
+             <div class="list">${top.map(({ d, why }) => `<div class="row" role="button" tabindex="0" data-hv="${d.id}"><span class="ic">${ic('bolt')}</span><div class="bd"><h3>${esc(d.title)}</h3><div class="meta">${[...why, ...(d.tags || []).slice(0, 1)].map(x => `<span>${esc(x)}</span>`).join('<i class="dot"></i>')}</div>${d.goal ? `<div class="snip">${esc(d.goal.slice(0, 120))}</div>` : ''}</div></div>`).join('')}</div>`
+          : `<p class="muted" style="margin-top:10px">אין פעולה שמתאימה בדיוק. נסו "לא משנה" בזמן או נושא אחר.</p>`;
+      };
+      bindChips(s, (k, v) => { st[k] = v; draw(); });
+      s.addEventListener('click', e => { const r = e.target.closest('[data-hv]'); if (r) { Sheet.close(true); Nav.go('doc', { id: r.dataset.hv }); } });
+      draw();
+    },
+  });
+}
+
+/* 2 — game randomizer: pick when, get a game, again and again without repeats */
+function openGameTool() {
+  const WHEN = [['warm', 'פתיחה וחימום'], ['activity', 'בתוך פעולה'], ['upgraded', 'משחק משודרג'], ['bus', 'אוטובוס'], ['route', 'מסלול'], ['any', 'הכל']];
+  const ROLES = { warm: ['warmup', 'opening'], activity: ['activity'], upgraded: ['upgraded'], bus: ['bus'], route: ['route'] };
+  const st = Object.assign({ when: 'warm', full: '1' }, LS.get('gametool', {}));
+  let bag = [], cur = null;
+  Sheet.show({
+    title: 'מגריל משחקים', tall: true, body: `
+      <div class="field"><label>מתי משחקים?</label>${chipRow('when', WHEN, st.when)}</div>
+      <div class="field">${chipRow('full', [['1', 'רק משחקים עם הסבר'], ['0', 'גם שמות בלבד']], st.full)}</div>
+      <div id="gm-out" style="margin-top:6px"></div>`,
+    foot: `<button class="btn primary" id="gm-go">${ic('shuffle')}הגרלה</button><button class="btn" id="gm-open" disabled>${ic('doc')}פתיחה מלאה</button><button class="btn" id="gm-copy" disabled aria-label="העתקה" title="העתקה" style="padding-inline:12px">${ic('copy')}</button>`,
+    onMount: s => {
+      const pool = () => Lib.comps.filter(c => c.type === 'game' && (st.when === 'any' || (ROLES[st.when] || []).includes(c.role)) && (st.full === '0' || (c.body || '').trim()));
+      const draw = () => {
+        const out = s.querySelector('#gm-out');
+        if (!cur) { out.innerHTML = `<p class="muted">${pool().length} משחקים בקטגוריה הזו. לחצו "הגרלה".</p>`; return; }
+        const from = cur.from && Lib.doc(cur.from);
+        out.innerHTML = `<div class="card" style="padding:16px">
+          <div class="tags" style="margin-bottom:8px"><span class="tag khaki">${esc(GAME_ROLES[cur.role] || 'משחק')}</span></div>
+          <h3 style="font:700 26px/1.1 var(--f-display,inherit);margin:0 0 8px">${esc(cur.title)}</h3>
+          <div class="prose">${renderMd((cur.body || '').slice(0, 1400)) || '<p class="muted">רק שם המשחק, בלי הסבר במקור.</p>'}</div>
+          ${from ? `<div class="faint" style="font-size:13px;margin-top:8px">מתוך: ${esc(from.title)}</div>` : ''}
+          <div class="faint" style="font-size:13px;margin-top:4px">נשארו ${bag.length} משחקים שעוד לא הוגרלו</div></div>`;
+        s.querySelector('#gm-open').disabled = s.querySelector('#gm-copy').disabled = false;
+      };
+      const roll = () => {
+        if (!bag.length) bag = shuffled(pool());
+        if (!bag.length) { cur = null; s.querySelector('#gm-out').innerHTML = '<p class="muted">אין משחקים בקטגוריה הזו.</p>'; return; }
+        cur = bag.pop(); draw();
+      };
+      bindChips(s, (k, v) => { st[k] = v; LS.set('gametool', st); bag = []; cur = null; s.querySelector('#gm-open').disabled = s.querySelector('#gm-copy').disabled = true; draw(); });
+      s.querySelector('#gm-go').onclick = roll;
+      s.querySelector('#gm-open').onclick = () => cur && openComp(cur.id);
+      s.querySelector('#gm-copy').onclick = () => cur && copyText(cur.title + '\n' + plainMd(cur.body || ''), 'המשחק הועתק');
+      draw();
+    },
+  });
+}
+
+/* 3 — discussion questions: topic or a word -> a fresh set, from several activities */
+function openQuestionsTool() {
+  const st = Object.assign({ topic: '', n: '5', q: '' }, LS.get('qtool', {}));
+  const TOP = [['', 'כל הנושאים'], ...Lib.topics.map(t => [t, t])];
+  let picked = [];
+  Sheet.show({
+    title: 'שאלות לדיון', tall: true, body: `
+      <div class="field"><label>נושא</label>${chipRow('topic', TOP, st.topic)}</div>
+      <div class="field"><label for="qt-q">או מילה (למשל: חרם, צבא, מסכים)</label><input class="input" id="qt-q" type="search" value="${esc(st.q)}" placeholder="לא חובה"></div>
+      <div class="field"><label>כמה שאלות</label>${chipRow('n', [['3', '3'], ['5', '5'], ['8', '8']], st.n)}</div>
+      <div id="qt-out"></div>`,
+    foot: `<button class="btn primary" id="qt-go">${ic('shuffle')}שאלות חדשות</button><button class="btn" id="qt-add" disabled>${ic('plus')}לפעולה שלי</button><button class="btn" id="qt-copy" disabled aria-label="העתקה" title="העתקה" style="padding-inline:12px">${ic('copy')}</button>`,
+    onMount: s => {
+      const all = () => {
+        const w = norm(st.q || '');
+        const out = [];
+        for (const c of Lib.comps) {
+          if (c.type !== 'questions') continue;
+          if (st.topic && !(c.tags || []).includes(st.topic)) continue;
+          for (const line of (c.body || '').split('\n')) {
+            const t = line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/\*\*/g, '').trim();
+            if (t.length < 12 || !/[?？]/.test(t)) continue;
+            if (w && !norm(t + ' ' + c.title).includes(w)) continue;
+            out.push({ t, c });
+          }
+        }
+        return out;
+      };
+      const roll = () => {
+        LS.set('qtool', st);
+        const pool = shuffled(all()), per = {}, n = +st.n; picked = [];
+        for (const x of pool) { if (picked.length >= n) break; if ((per[x.c.from] || 0) >= 2) continue; per[x.c.from] = (per[x.c.from] || 0) + 1; picked.push(x); }
+        for (const x of pool) { if (picked.length >= n) break; if (!picked.includes(x)) picked.push(x); }
+        const out = s.querySelector('#qt-out');
+        out.innerHTML = picked.length
+          ? `<ol class="prose" style="padding-inline-start:22px;margin-top:8px">${picked.map(x => { const d = Lib.doc(x.c.from); return `<li style="margin-bottom:10px">${esc(x.t)}${d ? `<div class="faint" style="font-size:12.5px">מתוך: ${esc(d.title)}</div>` : ''}</li>`; }).join('')}</ol>
+             <div class="faint" style="font-size:13px">${all().length} שאלות במאגר מתאימות לבחירה</div>`
+          : `<p class="muted" style="margin-top:10px">${st.q ? `אין במאגר שאלות לדיון עם המילה "${esc(st.q)}"${st.topic ? ' בנושא הזה' : ''}.` : 'אין עדיין שאלות לדיון בנושא הזה.'} נסו נושא אחר או מילה אחרת.</p>`;
+        s.querySelector('#qt-copy').disabled = s.querySelector('#qt-add').disabled = !picked.length;
+      };
+      bindChips(s, (k, v) => { st[k] = v; roll(); });
+      s.querySelector('#qt-q').addEventListener('input', debounce(e => { st.q = e.target.value.trim(); roll(); }, 350));
+      s.querySelector('#qt-go').onclick = roll;
+      s.querySelector('#qt-copy').onclick = () => copyText('שאלות לדיון:\n' + picked.map((x, i) => `${i + 1}. ${x.t}`).join('\n'), 'השאלות הועתקו');
+      s.querySelector('#qt-add').onclick = () => { const body = picked.map(x => '- ' + x.t).join('\n'); Sheet.close(true); insertFlow({ kind: COMP_TYPES.questions.k, title: 'שאלות לדיון' + (st.topic ? ' · ' + st.topic : ''), body }); };
+      roll();
     },
   });
 }
