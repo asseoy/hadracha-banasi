@@ -484,6 +484,61 @@ table.grid tfoot td{font-weight:700;background:var(--surface-2)}
   table.grid.stack td input,table.grid.stack td select{background:var(--surface-2);border-radius:6px;margin-top:2px}
   .tbl-wrap:has(table.stack){overflow:visible}
 }
+
+/* ================================================================
+   RED-BLACK — the default look (2026-10). The light paper theme is
+   only used when someone picks "בהיר" in the settings.
+   ================================================================ */
+:root:not([data-theme="light"]){
+  --ink:#F4F0EA; --ink-2:#CFC6BE; --ink-3:#978C84;
+  --paper:#0B0909; --surface:#161112; --surface-2:#221819; --surface-3:#2E2021;
+  --line:#2B2021; --line-2:#4B2D2E; --edge:#000000;
+  --red:#E2231A; --red-ink:#FF6B5F; --red-soft:#3B1512; --on-red:#FFFFFF;
+  --chrome:#000000; --chrome-2:#1E1314; --on-chrome:#FFFFFF; --on-chrome-2:#A89C95;
+  --green:#53B985; --green-soft:#132A1D; --amber:#E3A54C; --amber-soft:#2D2312;
+  --hard:3px 3px 0 var(--red); --hard-sm:2px 2px 0 var(--red);
+  --shadow-lg:0 18px 44px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+:root:not([data-theme="light"]) body{
+  background:
+    radial-gradient(110% 55% at 50% -8%,rgba(226,35,26,.20),transparent 60%),
+    var(--paper);
+  background-attachment:fixed;
+}
+/* black comic outlines read as dark-red seams on the black page */
+:root:not([data-theme="light"]) .list,
+:root:not([data-theme="light"]) .card{border-color:var(--line-2)}
+:root:not([data-theme="light"]) .row{border-top-color:var(--line)}
+:root:not([data-theme="light"]) .row:hover{background:var(--surface-2);box-shadow:inset -4px 0 0 var(--red)}
+:root:not([data-theme="light"]) .row .ic,
+:root:not([data-theme="light"]) .ic{background:var(--red-soft);color:var(--red-ink)}
+:root:not([data-theme="light"]) .kicker{background:#000;color:#fff;box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+:root:not([data-theme="light"]) .hero{border-bottom-color:#000;box-shadow:0 4px 0 #000}
+:root:not([data-theme="light"]) .hero-logo{background:#000}
+:root:not([data-theme="light"]) .searchbox{background:#0E0B0B;border-color:#000}
+:root:not([data-theme="light"]) .stat{background:#0E0B0B;border-color:#000}
+:root:not([data-theme="light"]) .stat .num,
+:root:not([data-theme="light"]) .stat b{color:#fff}
+:root:not([data-theme="light"]) .btn{border-color:#000}
+:root:not([data-theme="light"]) .btn:not(.primary){background:var(--surface);box-shadow:var(--hard-sm)}
+:root:not([data-theme="light"]) .btn.primary{box-shadow:3px 3px 0 #000}
+:root:not([data-theme="light"]) .index button{border-color:var(--line-2);background:var(--surface)}
+:root:not([data-theme="light"]) .index button:hover{border-color:var(--red);background:var(--surface-2)}
+:root:not([data-theme="light"]) .chip{background:var(--surface);border-color:var(--line-2);color:var(--ink-2)}
+:root:not([data-theme="light"]) .chip:hover{border-color:var(--red);color:var(--ink)}
+:root:not([data-theme="light"]) .chip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+:root:not([data-theme="light"]) .tag{background:var(--surface-3);color:var(--ink-2)}
+:root:not([data-theme="light"]) .sheet{border-top-color:var(--red);background:var(--surface)}
+:root:not([data-theme="light"]) .bottomnav{border-top:2px solid var(--red)}
+:root:not([data-theme="light"]) .navbtn[aria-current="page"]{color:#fff}
+:root:not([data-theme="light"]) .navbtn[aria-current="page"] svg{color:var(--red)}
+:root:not([data-theme="light"]) .rail{border-inline-end:2px solid var(--red)}
+:root:not([data-theme="light"]) .railbtn[aria-current="page"]{background:var(--red-soft);color:#fff;box-shadow:inset -3px 0 0 var(--red)}
+/* section titles carry a short red bar, like the stripe under the top bar */
+:root:not([data-theme="light"]) .hero .stat,:root:not([data-theme="light"]) .hero .searchbox{box-shadow:3px 3px 0 #000}
+.sec-head h2{position:relative;padding-bottom:8px}
+.sec-head h2::after{content:"";position:absolute;inset-inline-start:0;bottom:0;width:44px;height:4px;background:var(--red)}
 </style>
 
 </head>
@@ -493,12 +548,12 @@ table.grid tfoot td{font-weight:700;background:var(--surface-2)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="splash" id="splash" aria-hidden="true"><div><img src="img/logo-192.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('/img/','/')"><div class="t">הדרכה בנשיא</div></div></div>
 
-<script src="core.js?v=9"></script>
-<script src="views.js?v=9"></script>
-<script src="editor.js?v=9"></script>
-<script src="plan.js?v=9"></script>
-<script src="export.js?v=9"></script>
-<script src="boot.js?v=9"></script>
+<script src="core.js?v=10"></script>
+<script src="views.js?v=10"></script>
+<script src="editor.js?v=10"></script>
+<script src="plan.js?v=10"></script>
+<script src="export.js?v=10"></script>
+<script src="boot.js?v=10"></script>
 
 </body>
 </html>

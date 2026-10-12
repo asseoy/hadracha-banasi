@@ -846,11 +846,11 @@ function openNewActivity() {
 
 /* ================================================================ settings */
 function openSettings() {
-  const th = Store.prefs.theme || 'system';
+  const th = Store.prefs.theme === 'light' ? 'light' : 'system';
   Sheet.show({
     title: 'הגדרות', body: `
       <div class="lbl" style="margin-bottom:8px">מראה</div>
-      <div class="seg" style="margin:0 0 18px">${[['system', 'לפי המכשיר'], ['light', 'בהיר'], ['dark', 'כהה']].map(([k, n]) => `<button aria-pressed="${th === k}" data-theme="${k}">${n}</button>`).join('')}</div>
+      <div class="seg" style="margin:0 0 18px">${[['system', 'אדום־שחור'], ['light', 'בהיר']].map(([k, n]) => `<button aria-pressed="${th === k}" data-theme="${k}">${n}</button>`).join('')}</div>
       <div class="lbl" style="margin-bottom:8px">שמירה</div>
       <div class="notice" style="margin-bottom:16px">${ic(Store.db ? 'cloudok' : 'device')}<div>${Store.db ? 'העבודה שלכם נשמרת אוטומטית בחשבון — ותופיע גם בטלפון וגם במחשב. רק אתם רואים אותה.' : 'העבודה נשמרת אוטומטית בדפדפן הזה. בפתיחה מתוך Claude היא נשמרת גם בחשבון ומסתנכרנת בין מכשירים.'}</div></div>
       <div class="lbl" style="margin-bottom:8px">גיבוי</div>
